@@ -21,6 +21,10 @@ import numpy as np
 import argparse
 import cPickle
 
+from pycallgraph import PyCallGraph, Config, GlobbingFilter
+from pycallgraph.output import GraphvizOutput
+
+
 import pdb
 
 def str2bool(v):
@@ -86,129 +90,152 @@ def weights_init(m):
     xavier(m.weight.data)
     m.bias.data.zero_()
 
+def main():
 
-# pdb.set_trace()
-
-images_path = './images.pkl'
-targets_path = './targets.pkl'
-
-
-args.dataset_root = COCO_ROOT
-cfg = coco
-
-# data
-# dataset = COCODetection(root=args.dataset_root,
-#                        transform=SSDAugmentation(cfg['min_dim'],
-#                                                  MEANS))
-# step_index = 0
-#
-# data_loader = data.DataLoader(dataset, args.batch_size,
-#                               num_workers=args.num_workers,
-#                               shuffle=False, collate_fn=detection_collate,
-#                               pin_memory=True)
-# ## load train data
-# batch_iterator = iter(data_loader)
-# # data_loader[0]
-# images_list, targets_list = next(batch_iterator)
-# # images = torch.stack(images_list, 0)
-# images_array_list = [Variable(cur_image).data.numpy() for cur_image in images_list]
-# targets_array_list = [Variable(cur_targets).data.numpy() for cur_targets in targets_list]
-# # store data
-# cPickle.dump(images_array_list, open(images_path, 'wb'))
-# cPickle.dump(targets_array_list, open(targets_path, 'wb'))
-
-# load data
-images_array_list = cPickle.load(open(images_path, 'rb'))
-targets_array_list = cPickle.load(open(targets_path, 'rb'))
-
-images = torch.stack([torch.Tensor(cur_image) for cur_image in
-                      images_array_list], 0)
-targets = [torch.Tensor(cur_target) for cur_target in targets_array_list]
-
-print(type(images))
-print(type(targets))
-
-
-# pdb.set_trace()
-refinedet_net = build_refinedet('train', cfg['min_dim'], cfg['num_classes'])
-
-if args.cuda:
-  net = refinedet_net.cuda()
-  # net = torch.nn.DataParallel(refinedet_net).cuda()
-else:
-  net = refinedet_net
   
-device_ids = [0]
-cudnn.benchmark = True
-weights_path = '../weights/vgg16_reducedfc.pth'
-vgg_weights = torch.load(weights_path)
-refinedet_net.vgg.load_state_dict(vgg_weights)
-
-
-print('Initializing weights...')
-# initialize newly added layers' weights with xavier method
-refinedet_net.extras.apply(weights_init)
-refinedet_net.bi_loc.apply(weights_init)
-refinedet_net.bi_conf.apply(weights_init)
-
-refinedet_net.back_pyramid.apply(weights_init)
-refinedet_net.multi_loc.apply(weights_init)
-refinedet_net.multi_conf.apply(weights_init)
-
-optimizer = optim.SGD(net.parameters(), lr=args.lr,
-                      momentum=args.momentum,
-                      weight_decay=args.weight_decay)
-# neg_pos ratio 3:1
-bi_criterion = BiBoxLoss(0.5, True, 0, True, 3, 0.5,
-                         args.cuda)
-
-multi_criterion = MultiBoxLoss(cfg['num_classes'], 0.5, True, 0, True,
-                               3, 0.5, 0.6, args.cuda)
-
-net.train()
-# loss counters
-print('Loading the dataset...')
-print('Using the specified args:')
-print(args)
-
-
-iteration = 0
-loc_loss = 0
-conf_loss = 0
-step_index = 0
-
-
-if args.cuda:
-    images = Variable(images.cuda())
-    targets = [Variable(ann.cuda(), volatile=True) for ann in targets]
-else:
-    images = Variable(images)
-    targets = [Variable(ann, volatile=True) for ann in targets]
+  # run(
+  #   'include',
+  #   trace_filter=trace_filter,
+  #   comment='Should show secret_function.'
+  # )
+  
+  graphviz = GraphvizOutput()
+  graphviz.output_file = 'basic.svg'
+  graphviz.output_type = 'svg'
+  config = Config()
+  trace_filter = GlobbingFilter(include=[
+    'layers.*',
+    'utils.*',
+    'data.*',
+    'refinedet.*'
+  ])
+  # trace_filter = GlobbingFilter(exclude=[
+  #   'pdb.*',
+  #   'pycallgraph.*'
+  # ])
+  
+  config.trace_filter = trace_filter
+  with PyCallGraph(output=graphviz, config=config):
+    # pdb.set_trace()
     
-# forward
-t0 = time.time()
-bi_out, multi_out, priors = net(images)
-# backprop
-optimizer.zero_grad()
-# pdb.set_trace()
-bi_loss_l, bi_loss_c = bi_criterion(bi_out, priors, targets)
-multi_loss_l, multi_loss_c = multi_criterion(bi_out, multi_out, priors, targets)
-loss = bi_loss_l + bi_loss_c + multi_loss_l + multi_loss_c
-print(loss.data[0])
+    images_path = './images.pkl'
+    targets_path = './targets.pkl'
+    
+    
+    args.dataset_root = COCO_ROOT
+    cfg = coco
+    
+    # data
+    # dataset = COCODetection(root=args.dataset_root,
+    #                        transform=SSDAugmentation(cfg['min_dim'],
+    #                                                  MEANS))
+    # step_index = 0
+    #
+    # data_loader = data.DataLoader(dataset, args.batch_size,
+    #                               num_workers=args.num_workers,
+    #                               shuffle=False, collate_fn=detection_collate,
+    #                               pin_memory=True)
+    # ## load train data
+    # batch_iterator = iter(data_loader)
+    # # data_loader[0]
+    # images_list, targets_list = next(batch_iterator)
+    # # images = torch.stack(images_list, 0)
+    # images_array_list = [Variable(cur_image).data.numpy() for cur_image in images_list]
+    # targets_array_list = [Variable(cur_targets).data.numpy() for cur_targets in targets_list]
+    # # store data
+    # cPickle.dump(images_array_list, open(images_path, 'wb'))
+    # cPickle.dump(targets_array_list, open(targets_path, 'wb'))
+    
+    # load data
+    images_array_list = cPickle.load(open(images_path, 'rb'))
+    targets_array_list = cPickle.load(open(targets_path, 'rb'))
+    
+    images = torch.stack([torch.Tensor(cur_image) for cur_image in
+                          images_array_list], 0)
+    targets = [torch.Tensor(cur_target) for cur_target in targets_array_list]
+    
+    print(type(images))
+    print(type(targets))
+    
+    
+    # pdb.set_trace()
+    refinedet_net = build_refinedet('train', cfg['min_dim'], cfg['num_classes'])
+    
+    if args.cuda:
+      net = refinedet_net.cuda()
+      # net = torch.nn.DataParallel(refinedet_net).cuda()
+    else:
+      net = refinedet_net
+      
+    device_ids = [0]
+    cudnn.benchmark = True
+    weights_path = '../weights/vgg16_reducedfc.pth'
+    vgg_weights = torch.load(weights_path)
+    refinedet_net.vgg.load_state_dict(vgg_weights)
+    
+    
+    print('Initializing weights...')
+    # initialize newly added layers' weights with xavier method
+    net.extras.apply(weights_init)
+    net.bi_loc.apply(weights_init)
+    net.bi_conf.apply(weights_init)
 
-loss.backward()
-optimizer.step()
-t1 = time.time()
+    net.back_pyramid.apply(weights_init)
+    net.multi_loc.apply(weights_init)
+    net.multi_conf.apply(weights_init)
+    
+    optimizer = optim.SGD(net.parameters(), lr=args.lr,
+                          momentum=args.momentum,
+                          weight_decay=args.weight_decay)
+    # neg_pos ratio 3:1
+    bi_criterion = BiBoxLoss(0.5, True, 0, True, 3, 0.5,
+                             args.cuda)
+    
+    multi_criterion = MultiBoxLoss(cfg['num_classes'], 0.5, True, 0, True,
+                                   3, 0.5, 0.6, args.cuda)
+    
+    net.train()
+    # loss counters
+    print('Loading the dataset...')
+    print('Using the specified args:')
+    print(args)
+    
+      
+    if args.cuda:
+        images = Variable(images.cuda())
+        targets = [Variable(ann.cuda(), volatile=True) for ann in targets]
+    else:
+        images = Variable(images)
+        targets = [Variable(ann, volatile=True) for ann in targets]
+        
+    # forward
+    t0 = time.time()
+    bi_out, multi_out, priors = net(images)
+    # backprop
+    optimizer.zero_grad()
+    # pdb.set_trace()
+    bi_loss_l, bi_loss_c = bi_criterion(bi_out, priors, targets)
+    multi_loss_l, multi_loss_c = multi_criterion(bi_out, multi_out, priors, targets)
+    loss = bi_loss_l + bi_loss_c + multi_loss_l + multi_loss_c
+    print(loss.data[0])
+    
+    loss.backward()
+    optimizer.step()
+    t1 = time.time()
+    
+    bi_loc_loss = 0
+    bi_conf_loss = 0
+    multi_loc_loss = 0
+    multi_conf_loss = 0
+    
+    bi_loc_loss += bi_loss_l.data[0]
+    bi_conf_loss += bi_loss_c.data[0]
+    multi_loc_loss += multi_loss_l.data[0]
+    multi_conf_loss += multi_loss_c.data[0]
+    
+    print('timer: %.4f sec.' % (t1 - t0))
 
-bi_loc_loss = 0
-bi_conf_loss = 0
-multi_loc_loss = 0
-multi_conf_loss = 0
 
-bi_loc_loss += bi_loss_l.data[0]
-bi_conf_loss += bi_loss_c.data[0]
-multi_loc_loss += multi_loss_l.data[0]
-multi_conf_loss += multi_loss_c.data[0]
-
-print('timer: %.4f sec.' % (t1 - t0))
+if __name__ == '__main__':
+  main()
 
