@@ -159,7 +159,8 @@ def main():
     
     
     # pdb.set_trace()
-    refinedet_net = build_refinedet('train', cfg['min_dim'], cfg['num_classes'])
+    refinedet_net = build_refinedet('train', cfg, cfg['min_dim'],
+                                    cfg['num_classes'])
     
     if args.cuda:
       net = refinedet_net.cuda()
