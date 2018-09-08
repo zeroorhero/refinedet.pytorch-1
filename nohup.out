@@ -12256,3 +12256,33 @@ timer: 0.3898 sec.
 iter 61070 || Loss: 2.9036 || 
 timer: 0.5595 sec.
 iter 61080 || Loss: 2.4969 || 
+timer: 0.4113 sec.
+iter 61090 || Loss: 1.8915 || 
+timer: 0.4041 sec.
+iter 61100 || Loss: 2.7347 || 
+timer: 0.3966 sec.
+iter 61110 || Loss: 2.1185 || 
+timer: 0.3903 sec.
+iter 61120 || Loss: 2.2896 || 
+timer: 0.4007 sec.
+iter 61130 || Loss: 2.1548 || 
+timer: 0.6016 sec.
+iter 61140 || Loss: 2.3148 || 
+timer: 0.3895 sec.
+iter 61150 || Loss: 2.7981 || 
+timer: 0.3933 sec.
+iter 61160 || Loss: 3.0214 || 
+timer: 0.3901 sec.
+iter 61170 || Loss: 2.5334 || 
+timer: 0.4089 sec.
+iter 61180 || Loss: 2.7170 || 
+timer: 0.3909 sec.
+iter 61190 || Loss: 2.7216 || 
+timer: 0.3955 sec.
+iter 61200 || Loss: 3.0104 || 
+timer: 0.4139 sec.
+iter 61210 || Loss: 2.8029 || 
+timer: 0.3953 sec.
+iter 61220 || Loss: 2.5280 || 
+timer: 0.3963 sec.
+iter 61230 || Loss: 3.1532 || 
