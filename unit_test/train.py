@@ -2,6 +2,7 @@
 
 import os
 import sys
+import json
 
 root_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append("..")
@@ -126,8 +127,12 @@ def main():
     print(type(images))
     print(type(targets))
     
-    refinedet = ResNetRefineDet(cfg['num_classes'], cfg)
-
+    # refinedet = ResNetRefineDet(cfg['num_classes'], cfg)
+    is_vgg = True
+    if is_vgg:
+        refinedet = VGGRefineDet(cfg['num_classes'], cfg)
+        args.save_folder = '../weights/vgg16'
+        args.basenet = 'vgg16_reducedfc.pth'
     refinedet.create_architecture(
         os.path.join(args.save_folder, args.basenet), pretrained=True,
         fine_tuning=True)
@@ -135,8 +140,16 @@ def main():
     if args.cuda:
         net = torch.nn.DataParallel(refinedet).cuda()
         cudnn.benchmark = True
-
+    
     params = net.state_dict()
+    fw = open('param_infos.txt', 'w')
+    for name, param in net.named_parameters():
+        info = json.dumps(' '.join([name,
+                          'x'.join(map(str, param.size()))]))
+        
+        fw.write(info + '\n')
+        fw.flush()
+    fw.close()
     # for k, v in params.items():
     #     print(k)
     #     print(v.shape)
