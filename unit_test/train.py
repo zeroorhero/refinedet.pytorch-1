@@ -93,28 +93,28 @@ def main():
     
     args.dataset_root = COCO_ROOT
     cfg = coco320
-    # # data
-    # dataset = COCODetection(root=args.dataset_root,
-    #                         transform=SSDAugmentation(cfg['min_dim'], MEANS))
-    # data_loader = data.DataLoader(dataset, args.batch_size,
-    #                               num_workers=args.num_workers,
-    #                               shuffle=False, collate_fn=detection_collate,
-    #                               pin_memory=True)
-    # ## load train data
-    # batch_iterator = iter(data_loader)
-    # # data_loader[0]
-    # images_list, targets_list = next(batch_iterator)
-    # pdb.set_trace()
-    # # images = torch.stack(images_list, 0)
-    # images_array_list = [Variable(cur_image).data.numpy() for cur_image in images_list]
-    # targets_array_list = [Variable(cur_targets).data.numpy() for cur_targets in targets_list]
-    # # store data
-    # fw_images = open(images_path, 'wb')
-    # cPickle.dump(images_array_list, fw_images)
-    # fw_images.close()
-    # fw_targets = open(targets_path, 'wb')
-    # cPickle.dump(targets_array_list, fw_targets)
-    # fw_targets.close()
+    # data
+    dataset = COCODetection(root=args.dataset_root,
+                            transform=SSDAugmentation(cfg['min_dim'], MEANS))
+    data_loader = data.DataLoader(dataset, args.batch_size,
+                                  num_workers=args.num_workers,
+                                  shuffle=False, collate_fn=detection_collate,
+                                  pin_memory=True)
+    ## load train data
+    batch_iterator = iter(data_loader)
+    # data_loader[0]
+    images_list, targets_list = next(batch_iterator)
+    pdb.set_trace()
+    # images = torch.stack(images_list, 0)
+    images_array_list = [Variable(cur_image).data.numpy() for cur_image in images_list]
+    targets_array_list = [Variable(cur_targets).data.numpy() for cur_targets in targets_list]
+    # store data
+    fw_images = open(images_path, 'wb')
+    cPickle.dump(images_array_list, fw_images)
+    fw_images.close()
+    fw_targets = open(targets_path, 'wb')
+    cPickle.dump(targets_array_list, fw_targets)
+    fw_targets.close()
     
     # load data
     images_array_list = cPickle.load(open(images_path, 'rb'))
