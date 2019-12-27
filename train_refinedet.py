@@ -187,21 +187,22 @@ def train():
             optimizer.zero_grad()
             bi_loss_loc, bi_loss_conf, multi_loss_loc, multi_loss_conf = \
                 net(images, targets)
-            loss = bi_loss_loc.mean() + bi_loss_conf.mean() + \
-                   multi_loss_loc.mean() + multi_loss_conf.mean()
+            # loss = bi_loss_loc.mean() + bi_loss_conf.mean() + \
+            #        multi_loss_loc.mean() + multi_loss_conf.mean()
+            loss = bi_loss_loc.mean() + bi_loss_conf.mean()
             loss.backward()
             optimizer.step()
             t1 = time.time()
             if num_gpus > 1:
-                arm_loss_loc = bi_loss_loc.mean().data[0]
-                arm_loss_conf = bi_loss_conf.mean().data[0]
-                odm_loss_loc = multi_loss_loc.mean().data[0]
-                odm_loss_conf = multi_loss_conf.mean().data[0]
+                arm_loss_loc = bi_loss_loc.mean().item()
+                arm_loss_conf = bi_loss_conf.mean().item()
+                odm_loss_loc = multi_loss_loc.mean().item()
+                odm_loss_conf = multi_loss_conf.mean().item()
             else:
-                arm_loss_loc = bi_loss_loc.data[0]
-                arm_loss_conf = bi_loss_conf.data[0]
-                odm_loss_loc = multi_loss_loc.data[0]
-                odm_loss_conf = multi_loss_conf.data[0]
+                arm_loss_loc = bi_loss_loc.item()
+                arm_loss_conf = bi_loss_conf.item()
+                odm_loss_loc = multi_loss_loc.item()
+                odm_loss_conf = multi_loss_conf.item()
             
             if iteration % 10 == 0:
                 print('timer: %.4f sec.' % (t1 - t0))

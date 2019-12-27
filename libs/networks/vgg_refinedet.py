@@ -51,7 +51,7 @@ class VGGRefineDet(_RefineDet):
             
         self.layers_out_channels = layers_out_channels
         self.extra = nn.ModuleList(add_extra_layers())
-        pdb.set_trace()
+        #pdb.set_trace()
         # construct base network
         assert key_layer_ids[2] == -1 and key_layer_ids[3] == -1, \
             'Must use outputs of the final layers in base and extra.'

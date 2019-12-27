@@ -46,14 +46,14 @@ class ODMLoss(nn.Module):
 #         pdb.set_trace()
         for idx in range(num):
             cur_targets = targets[idx].data
+            valid_targets = cur_targets[cur_targets[:, -1] > 0]
             # Ingore background (label id is 0)
-            target_flag = cur_targets[:, -1] > 0
-            target_flag = target_flag.unsqueeze(
-                target_flag.dim()).expand_as(
-                cur_targets).contiguous().view(
-                -1, cur_targets.size()[-1])
-            valid_targets = cur_targets[target_flag].contiguous().view(
-                -1, cur_targets.size()[-1])
+            # target_flag = (cur_targets[:, -1] > 0).view(-1, 1).expand_as(cur_targets)
+            # valid_targets = cur_targets[target_flag]
+            # target_flag = target_flag.unsqueeze(target_flag.dim()).expand_as(
+            #     cur_targets).contiguous().view(-1, cur_targets.size()[-1])
+            # valid_targets = cur_targets[target_flag].contiguous().view(
+            #     -1, cur_targets.size()[-1])
             truths = valid_targets[:, :-1]
             labels = valid_targets[:, -1]
             
@@ -82,7 +82,7 @@ class ODMLoss(nn.Module):
             return Variable(torch.tensor([0])), Variable(torch.tensor([0]))
  
         loc_t = loc_t[pos_idx].view(-1, 4)
-        loss_l = functional.smooth_l1_loss(loc_p, loc_t, size_average=False)
+        loss_l = functional.smooth_l1_loss(loc_p, loc_t, reduction='sum')
         # Compute max conf across batch for hard negative mining
         batch_conf = conf_pred.view(-1, self.num_classes)
         # Sum up losses of all wrong classes.
@@ -118,10 +118,13 @@ class ODMLoss(nn.Module):
         select_target = conf_t[select_target_idx]
         # Final classification loss
         loss_c = functional.cross_entropy(select_conf_pred, select_target,
-                                          size_average=False)
+                                          reduction='sum')
         # Sum of losses: L(x,c,l,g) = (Lconf(x, c) + alpha*Lloc(x,l,g)) / N
         # only number of positives
-        total_num = num_pos.data.sum()
+
+        total_num = num_pos.data.sum().float()
+        print('odm_loss', loss_l, loss_c, total_num)
+        # pdb.set_trace()
         loss_l /= total_num
         loss_c /= total_num
          
