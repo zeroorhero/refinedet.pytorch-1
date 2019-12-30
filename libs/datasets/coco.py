@@ -18,9 +18,7 @@ import pickle
 import json
 import uuid
 
-# from datasets.imdb import imdb
-# import datasets.ds_utils as ds_utils
-# from model.utils.config import cfg
+
 from .imdb import imdb
 from .imdb import cfg
 from . import ds_utils

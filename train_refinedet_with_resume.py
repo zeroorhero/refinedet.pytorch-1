@@ -9,10 +9,10 @@ import torch.utils.data as data
 from libs.utils.augmentations import SSDAugmentation
 from libs.networks.vgg_refinedet import VGGRefineDet
 from libs.networks.resnet_refinedet import ResNetRefineDet
-from libs.dataset.config import voc320, voc512, coco320, coco512, MEANS
-from libs.dataset.transform import detection_collate
-from libs.dataset.roidb import combined_roidb
-from libs.dataset.blob_dataset import BlobDataset
+from libs.utils.config import voc320, voc512, coco320, coco512, MEANS
+from libs.data_layers.transform import detection_collate
+from libs.data_layers.roidb import combined_roidb
+from libs.data_layers.blob_dataset import BlobDataset
 
 import pdb
 
