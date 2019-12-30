@@ -187,9 +187,9 @@ def train():
             optimizer.zero_grad()
             bi_loss_loc, bi_loss_conf, multi_loss_loc, multi_loss_conf = \
                 net(images, targets)
-            # loss = bi_loss_loc.mean() + bi_loss_conf.mean() + \
-            #        multi_loss_loc.mean() + multi_loss_conf.mean()
-            loss = bi_loss_loc.mean() + bi_loss_conf.mean()
+            loss = bi_loss_loc.mean() + bi_loss_conf.mean() + \
+                   multi_loss_loc.mean() + multi_loss_conf.mean()
+            # loss = bi_loss_loc.mean() + bi_loss_conf.mean()
             loss.backward()
             optimizer.step()
             t1 = time.time()
@@ -212,7 +212,7 @@ def train():
                        ' || Loss: %.4f ||') % (
                           arm_loss_loc, arm_loss_conf, 
                           odm_loss_loc, odm_loss_conf, 
-                          loss.data[0]) + ' ')
+                          loss.item()) + ' ')
 #                 print('iter ' + repr(iteration) +
 #                       ' || Loss: %.4f ||' % (loss.data[0]) + ' ')
                 # print('iter ' + repr(iteration) +

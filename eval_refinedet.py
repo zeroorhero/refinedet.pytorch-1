@@ -72,20 +72,21 @@ parser.add_argument('--cuda', default=True, type=str2bool,
 args = parser.parse_args()
 
 #args.input_size = 512
-#args.input_size = 320
-#args.dataset = 'voc'
+args.input_size = 320
+args.dataset = 'voc'
 #args.dataset = 'coco'
-#args.network = 'vgg16'
+args.network = 'vgg16'
+postfix_iter = 50000
 #postfix_iter = 120000
 #args.network = 'resnet101'
 #postfix_iter = 410000
-#result_path = '{}_{}x{}'.format(args.network, str(args.input_size),
-#                              str(args.input_size))
-#subdir = 'refinedet{}_{}'.format(args.input_size, args.dataset) 
-#args.model_path = './weights/{}/{}/{}_{}.pth'.format(
-#    args.network, subdir, subdir,
-#    str(postfix_iter)
-#)
+result_path = '{}_{}x{}'.format(args.network, str(args.input_size),
+                              str(args.input_size))
+subdir = 'refinedet{}_{}'.format(args.input_size, args.dataset) 
+args.model_path = './weights/{}/{}/{}_{}.pth'.format(
+    args.network, subdir, subdir,
+    str(postfix_iter)
+)
 
 
 num_gpus = 1
@@ -196,7 +197,7 @@ def eval_net():
             dets = detection[0, jc, :]
             mask = dets[:, 0].gt(0.).expand(5, dets.size(0)).t()
             dets = torch.masked_select(dets, mask).view(-1, 5)
-            if dets.dim() > 0:
+            if (len(dets) > 0) and (dets.dim() > 0):
                 boxes = dets[:, 1:]
                 boxes[:, 0] *= w
                 boxes[:, 2] *= w

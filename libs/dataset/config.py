@@ -26,7 +26,7 @@ voc320 = {
     # 'clip': True,
     'tcb_channles': 256,
     'gt_overlap_threshold': 0.5,
-    'neg_pos_ratio': 3,
+    'neg_pos_ratio': 2,
     # anchor with positive probility less than this will be ignored
     'use_batch_norm': False,
     'pos_anchor_threshold': 0.01,
@@ -54,7 +54,7 @@ voc512 = {
     # 'clip': True,
     'tcb_channles': 256,
     'gt_overlap_threshold': 0.5,
-    'neg_pos_ratio': 3,
+    'neg_pos_ratio': 2,
     # anchor with positive probility less than this will be ignored
     'use_batch_norm': False,
     'pos_anchor_threshold': 0.01,
@@ -83,7 +83,7 @@ coco320 = {
     # 'clip': True,
     'tcb_channles': 256,
     'gt_overlap_threshold': 0.5,
-    'neg_pos_ratio': 3,
+    'neg_pos_ratio': 2,
     # anchor with positive probility less than this will be ignored
     'use_batch_norm': False,
     'pos_anchor_threshold': 0.01,
@@ -112,7 +112,7 @@ coco512 = {
     # 'clip': True,
     'tcb_channles': 256,
     'gt_overlap_threshold': 0.5,
-    'neg_pos_ratio': 3,
+    'neg_pos_ratio': 2,
     # anchor with positive probility less than this will be ignored
     'use_batch_norm': False,
     'pos_anchor_threshold': 0.01,

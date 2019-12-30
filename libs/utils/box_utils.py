@@ -94,81 +94,6 @@ def jaccard(gt_boxes, anchors):
     
     return overlaps
 
-def jaccard_ori(box_a, box_b):
-    """Compute the jaccard overlap of two sets of boxes.  The jaccard overlap
-    is simply the intersection over union of two boxes.  Here we operate on
-    ground truth boxes and default boxes.
-    E.g.:
-        A ∩ B / A ∪ B = A ∩ B / (area(A) + area(B) - A ∩ B)
-    Args:
-        box_a: (tensor) Ground truth bounding boxes, Shape: [num_objects,4]
-        box_b: (tensor) Prior boxes from anchorbox layers, Shape: [num_anchors,4]
-    Return:
-        jaccard overlap: (tensor) Shape: [box_a.size(0), box_b.size(0)]
-    """
-    inter = intersect(box_a, box_b)
-    area_a = ((box_a[:, 2] - box_a[:, 0]) *
-              (box_a[:, 3] - box_a[:, 1])).unsqueeze(1).expand_as(inter)  # [A,B]
-    area_b = ((box_b[:, 2] - box_b[:, 0]) *
-              (box_b[:, 3] - box_b[:, 1])).unsqueeze(0).expand_as(inter)  # [A,B]
-    union = area_a + area_b - inter
-    return inter / union  # [A,B]
-
-
-def match_ori(threshold, truths, anchors, variances, labels, loc_t, conf_t,
-          idx):
-    """Match each anchor box with the ground truth box of the highest jaccard
-    overlap, encode the bounding boxes, then return the matched indices
-    corresponding to both confidence and location preds.
-    Args:
-        threshold: (float) The overlap threshold used when mathing boxes.
-        truths: (tensor) Ground truth boxes, Shape: [num_obj, num_anchors].
-        anchors: (tensor) Prior boxes from anchorbox layers, Shape: [n_anchors,4].
-        variances: (tensor) Variances corresponding to each anchor coord,
-            Shape: [num_anchors, 4].
-        labels: (tensor) All the class labels for the image, Shape: [num_obj].
-        indice is from 0.
-        loc_t: (tensor) Tensor to be filled w/ endcoded location targets.
-        conf_t: (tensor) Tensor to be filled w/ matched indices for conf preds.
-        idx: (int) current batch index
-    Return:
-        The matched indices corresponding to 1)location and 2)confidence preds.
-    """
-    # jaccard index
-    overlaps = jaccard(
-        truths,
-        point_form(anchors)
-    )
-    # (Bipartite Matching)
-    # [1,num_objects] best anchor for each ground truth
-    best_anchor_overlap, best_anchor_idx = overlaps.max(1, keepdim=True)
-    # best_anchor_overlap[best_anchor_overlap == 0] = 1e-5
-    
-    # [1,num_anchors] best ground truth for each anchor
-    best_truth_overlap, best_truth_idx = overlaps.max(0, keepdim=True)
-    best_truth_idx.squeeze_(0)
-    best_truth_overlap.squeeze_(0)
-    best_anchor_idx.squeeze_(1)
-    best_anchor_overlap.squeeze_(1)
-    best_anchor_idx = best_anchor_idx[best_anchor_overlap > 0]
-    best_truth_overlap.index_fill_(0, best_anchor_idx, 2)
-    # For each gt, ensure it matches with its anchor of max overlap
-    for j in range(best_anchor_idx.size(0)):
-        best_truth_idx[best_anchor_idx[j]] = j
-    # Select
-    matches = truths[best_truth_idx]  # Shape: [num_anchors,4]
-    # pdb.set_trace()
-    conf = labels[best_truth_idx] # Shape: [num_anchors]
-    # conf = labels[best_truth_idx] + 1  # Shape: [num_anchors]
-    conf[(best_truth_overlap > 0) & (best_truth_overlap < threshold)] = 0  # label as background
-    # All location is stored ? but use conf > 0 to indicate which is valid.
-    # It is better to modify loc to zeros, or weights to indicate
-    # like faster rcnn
-    loc = encode(matches, anchors, variances)
-    loc_t[idx] = loc  # [num_anchors,4] encoded offsets to learn
-    conf_t[idx] = conf  # [num_anchors] top class label for each anchor
-
-
 def match(threshold, truths, anchors, variances, labels, loc_t, conf_t, idx):
     """Match each anchor box with the ground truth box of the highest jaccard
     overlap, encode the bounding boxes, then return the matched indices
@@ -188,7 +113,7 @@ def match(threshold, truths, anchors, variances, labels, loc_t, conf_t, idx):
         The matched indices corresponding to 1)location and 2)confidence preds.
     """
     # jaccard index
-    overlaps = jaccard_ori(
+    overlaps = jaccard(
         truths,
         point_form(anchors)
     )
@@ -204,9 +129,10 @@ def match(threshold, truths, anchors, variances, labels, loc_t, conf_t, idx):
     best_anchor_idx.squeeze_(1)
     best_anchor_overlap.squeeze_(1)
     # ensure that gts must being matched.
-    best_anchor_idx = best_anchor_idx[best_anchor_overlap > 0]
     # rise overlap
-    best_truth_overlap.index_fill_(0, best_anchor_idx, 1.0)
+    best_anchor_idx = best_anchor_idx[best_anchor_overlap > 0]
+    if len(best_anchor_idx) > 0:
+        best_truth_overlap.index_fill_(0, best_anchor_idx, 1.0)
     # For each gt, ensure it matches with its anchor of max overlap
     for j in range(best_anchor_idx.size(0)):
         best_truth_idx[best_anchor_idx[j]] = j
@@ -222,61 +148,6 @@ def match(threshold, truths, anchors, variances, labels, loc_t, conf_t, idx):
     loc = encode(matches, anchors, variances)
     loc_t[idx] = loc  # [num_anchors,4] encoded offsets to learn
     conf_t[idx] = conf  # [num_anchors] top class label for each anchor
-
-
-def match_irregular_anchors(threshold, truths, anchors, variances, labels, loc_t, conf_t, idx):
-    """Match each anchor box with the ground truth box of the highest jaccard
-    overlap, encode the bounding boxes, then return the matched indices
-    corresponding to both confidence and location preds.
-    Args:
-        threshold: (float) The overlap threshold used when mathing boxes.
-        truths: (tensor) Ground truth boxes, Shape: [num_obj, num_anchors].
-        anchors: (tensor) Prior boxes from anchorbox layers, Shape: [n_anchors,4].
-        variances: (tensor) Variances corresponding to each anchor coord,
-            Shape: [num_anchors, 4].
-        labels: (tensor) All the class labels for the image, Shape: [num_obj].
-        indice is from 0.
-        loc_t: (tensor) Tensor to be filled w/ endcoded location targets.
-        conf_t: (tensor) Tensor to be filled w/ matched indices for conf preds.
-        idx: (int) current batch index
-    Return:
-        The matched indices corresponding to 1)location and 2)confidence preds.
-    """
-    # jaccard index
-    overlaps = jaccard(
-        truths,
-        point_form(anchors)
-    )
-    # (Bipartite Matching)
-    # [1,num_objects] best anchor for each ground truth
-    best_anchor_overlap, best_anchor_idx = overlaps.max(1, keepdim=True)
-    # best_anchor_overlap[best_anchor_overlap == 0] = 1e-5
-    
-    # [1,num_anchors] best ground truth for each anchor
-    best_truth_overlap, best_truth_idx = overlaps.max(0, keepdim=True)
-    best_truth_idx.squeeze_(0)
-    best_truth_overlap.squeeze_(0)
-    best_anchor_idx.squeeze_(1)
-    best_anchor_overlap.squeeze_(1)
-    best_anchor_idx = best_anchor_idx[best_anchor_overlap > 0]
-    # rise overlap
-    best_truth_overlap.index_fill_(0, best_anchor_idx, 1.0)
-    # For each gt, ensure it matches with its anchor of max overlap
-    for j in range(best_anchor_idx.size(0)):
-        best_truth_idx[best_anchor_idx[j]] = j
-    # Select
-    matches = truths[best_truth_idx]  # Shape: [num_anchors,4]
-    # pdb.set_trace()
-    conf = labels[best_truth_idx]  # Shape: [num_anchors]
-    # conf = labels[best_truth_idx] + 1  # Shape: [num_anchors]
-    conf[best_truth_overlap < threshold] = 0  # label as background
-    # All location is stored ? but use conf > 0 to indicate which is valid.
-    # It is better to modify loc to zeros, or weights to indicate
-    # like faster rcnn
-    loc = encode(matches, anchors, variances)
-    loc_t[idx] = loc  # [num_anchors,4] encoded offsets to learn
-    conf_t[idx] = conf  # [num_anchors] top class label for each anchor
-
 
 
 def match_with_flags(threshold, truths, anchors, ignore_flags, variances,
@@ -306,13 +177,6 @@ def match_with_flags(threshold, truths, anchors, ignore_flags, variances,
         truths,
         point_form(anchors)
     )   
-    #nan_flags = (overlaps != overlaps)
-    #if len(nan_flags.nonzero()) > 0:
-    #    pdb.set_trace()
-    # Modify overlaps according to ignore_flags, columns of ignored anchors are assigned
-    # zero overlap.
-    # ignore = ignore_flags.unsqueeze(0).expand_as(overlaps)
-    # overlaps[ignore] = 0.
     # (Bipartite Matching)
     # [1,num_objects] best anchor for each ground truth
     best_anchor_overlap, best_anchor_idx = overlaps.max(1, keepdim=True)
@@ -321,24 +185,16 @@ def match_with_flags(threshold, truths, anchors, ignore_flags, variances,
     best_truth_idx.squeeze_(0)
     best_truth_overlap.squeeze_(0)
     best_anchor_idx.squeeze_(1)
-    best_anchor_overlap.squeeze_(1)    
-    # Exclude some gts that have too small overlap with anchor
-    # gt_flag = best_anchor_overlap > 1e-5
-    gt_flag = best_anchor_overlap > 1e-4
+    best_anchor_overlap.squeeze_(1)
 #     pdb.set_trace()
     # Ensure anchors matched with selected gts have big overlap.
-    selected_anchor_idx = best_anchor_idx[gt_flag]
-    if len(selected_anchor_idx) > 0:
-        best_truth_overlap.index_fill_(0, selected_anchor_idx, 2)
+    best_anchor_idx = best_anchor_idx[best_anchor_overlap > 0]
+    if len(best_anchor_idx) > 0:
+        best_truth_overlap.index_fill_(0, best_anchor_idx, 2)
     # Since we use best_truth_overlap to get flags, we do not need to modify best_truth_idx.
-    for j in range(selected_anchor_idx.size(0)):
-        best_truth_idx[selected_anchor_idx[j]] = j
-    # best_truth_idx = best_truth_idx[best_truth_overlap >= threshold]
-#     # For each selected gt, ensure every gt matches with its anchor of max overlap
-#     gt_indices = gt_flag.nonzero()[:, 0]
-#     for j in range(gt_indices.size(0)):
-#         gt_idx = gt_indices[j]
-#         best_truth_idx[best_anchor_idx[gt_idx]] = gt_idx
+    # For each selected gt, ensure every gt matches with its anchor of max overlap
+    for j in range(best_anchor_idx.size(0)):
+        best_truth_idx[best_anchor_idx[j]] = j
     # Select
     matches = truths[best_truth_idx]  # Shape: [num_anchors,4]
     conf = labels[best_truth_idx] # Shape: [num_anchors]   
@@ -349,9 +205,6 @@ def match_with_flags(threshold, truths, anchors, ignore_flags, variances,
     # It is better to modify loc to zeros, or weights to indicate
     loc = encode(matches, anchors, variances)
     loc[background_flag.unsqueeze(-1).expand_as(loc)] = -1.
-#     big_loc_index = (torch.abs(loc) > 1e5).nonzero()
-#     if len(big_loc_index) > 0:
-#         pdb.set_trace() 
     loc_t[idx] = loc  # [num_anchors,4] encoded offsets to learn
     conf_t[idx] = conf  # [num_anchors] top class label for each anchor
     

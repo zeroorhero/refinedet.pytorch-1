@@ -174,11 +174,11 @@ class RefineDet(nn.Module):
         """
         arm_loss_loc, arm_loss_conf = self.arm_loss_layer(
             self.arm_predictions, self.anchors, targets)
-        # odm_loss_loc, odm_loss_conf = self.odm_loss_layer(
-        #     self.odm_predictions, self.refined_anchors,
-        #     self.ignore_flags_refined_anchor, targets)
-        odm_loss_loc = torch.Tensor([1])
-        odm_loss_conf = torch.Tensor([1])
+        odm_loss_loc, odm_loss_conf = self.odm_loss_layer(
+            self.odm_predictions, self.refined_anchors,
+            self.ignore_flags_refined_anchor, targets)
+        # odm_loss_loc = torch.Tensor([1])
+        # odm_loss_conf = torch.Tensor([1])
         return arm_loss_loc, arm_loss_conf, odm_loss_loc, odm_loss_conf
     
     def _get_forward_features(self, x):
