@@ -35,12 +35,13 @@ class ODMLoss(nn.Module):
         (loc_pred, conf_pred) = odm_predictions
         num = refined_anchors.size(0)
         num_anchors = refined_anchors.size(1)
-        loc_t = torch.Tensor(num, num_anchors, 4)
-        conf_t = torch.LongTensor(num, num_anchors)
-        if loc_pred.is_cuda:
-            loc_t = loc_t.cuda()
-            conf_t = conf_t.cuda()
-
+        # loc_t = torch.Tensor(num, num_anchors, 4)
+        # conf_t = torch.LongTensor(num, num_anchors)
+        # if loc_pred.is_cuda:
+        #     loc_t = loc_t.cuda()
+        #     conf_t = conf_t.cuda()
+        loc_t = loc_pred.data.new(num, num_anchors, 4)
+        conf_t = loc_pred.data.new(num, num_anchors).long()
         
         # Match refined_anchors (predicted ROIs) and ground truth boxes
         # Consider each image in one batch.

@@ -9,6 +9,8 @@
 import torch
 import torch.nn as nn
 import torch.nn.init as init
+import pdb
+
 
 def weights_init(m):
     '''
@@ -74,6 +76,7 @@ class L2Norm(nn.Module):
         init.constant_(self.weight, self.gamma)
 
     def forward(self, x):
+        # pdb.set_trace()
         norm = x.pow(2).sum(dim=1, keepdim=True).sqrt()+self.eps
         #x /= norm
         x = torch.div(x, norm)

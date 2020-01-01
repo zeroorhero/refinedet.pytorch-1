@@ -1,7 +1,7 @@
 scipy==1.0.0
-torchvision==0.2.1
+#torchvision==0.2.1
 opencv_python==3.4.0.12
 easydict==1.7
-torch==0.4.1
+#torch==0.4.1
 numpy==1.13.3
 Pillow==6.2.1

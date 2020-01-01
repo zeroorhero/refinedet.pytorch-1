@@ -1,4 +1,6 @@
 
+job_spec.json
+run.sh
 # data
 data/
 #voc_detections
@@ -31,5 +33,6 @@ doc/
 
 nohup.*
 *.out
+libs/pycocotools/*.so
 
 debug_vgg16_coco320*

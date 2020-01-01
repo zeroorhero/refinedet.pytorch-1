@@ -13,6 +13,8 @@ from libs.utils.config import voc320, voc512, coco320, coco512, MEANS
 from libs.data_layers.transform import detection_collate
 from libs.data_layers.roidb import combined_roidb
 from libs.data_layers.blob_dataset import BlobDataset
+from libs.utils.path_config import cfg as path_cfg
+
 
 import numpy as np
 import random
@@ -26,9 +28,6 @@ def setup_seed(seed):
      torch.backends.cudnn.deterministic = True
 
 
-#os.environ['CUDA_VISIBLE_DEVICES'] = '2'
-#os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-#os.environ['CUDA_VISIBLE_DEVICES'] = '0,1,2'
 setup_seed(0)
 
 def str2bool(v):
@@ -41,8 +40,8 @@ parser.add_argument('--dataset', default='voc',
                     choices=['voc', 'coco'],
                     type=str, help='voc or coco')
 parser.add_argument('--network', default='vgg16',
-                    help='Pretrained base model')
-parser.add_argument('--basenet', default='vgg16_reducedfc.pth',
+                    help='backbone network')
+parser.add_argument('--base_model', default='vgg16_reducedfc.pth',
                     help='Pretrained base model')
 parser.add_argument('--input_size', default=320, type=int,
                     help='Input size for training')
@@ -64,17 +63,22 @@ parser.add_argument('--weight_decay', default=5e-4, type=float,
                     help='Weight decay for SGD')
 parser.add_argument('--gamma', default=0.1, type=float,
                     help='Gamma update for SGD')
-parser.add_argument('--save_folder', default='weights/vgg16',
+parser.add_argument('--output_folder', default='output',
                     help='Directory for saving checkpoint models')
+parser.add_argument('--pretrained_folder', default='pretrained_model',
+                    help='Directory for saving checkpoint models')
+
 args = parser.parse_args()
 
+
+num_gpus = 0
 
 if torch.cuda.is_available():
     print('CUDA devices: ', torch.cuda.device)
     print('GPU numbers: ', torch.cuda.device_count())
     num_gpus = torch.cuda.device_count()
     
-num_gpus = 0
+# num_gpus = 0
 #num_gpus = 1
 
 if torch.cuda.is_available():
@@ -86,9 +90,6 @@ if torch.cuda.is_available():
         torch.set_default_tensor_type('torch.FloatTensor')
 else:
     torch.set_default_tensor_type('torch.FloatTensor')
-
-if not os.path.exists(args.save_folder):
-    os.mkdir(args.save_folder)
 
     
 def train():
@@ -118,10 +119,9 @@ def train():
         refinedet = VGGRefineDet(cfg['num_classes'], cfg)
     elif args.network == 'resnet101':
         refinedet = ResNetRefineDet(cfg['num_classes'], cfg)
-    refinedet.create_architecture(
-        os.path.join(args.save_folder, args.basenet), pretrained=True,
-        fine_tuning=True)
-    #pdb.set_trace()
+        
+    pretrained_model = os.path.join(path_cfg.DATA_DIR, args.pretrained_folder, args.base_model)
+    refinedet.create_architecture(pretrained_model, pretrained=True, fine_tuning=True)
     # For CPU
     net = refinedet
     # For GPU/GPUs
@@ -149,12 +149,16 @@ def train():
     print('Using the specified args:')
     print(args)
 
+    output_folder = os.path.join(path_cfg.OUTPUT_DIR, args.output_folder)
+    if not os.path.exists(output_folder):
+        os.mkdir(output_folder)
+        
     step_index = 0
     str_input_size = str(cfg['min_dim'])
-    model_info = 'refinedet{0}_'.format(str_input_size) + args.dataset
-    model_save_folder = os.path.join(args.save_folder, model_info)
-    if not os.path.exists(model_save_folder):
-        os.mkdir(model_save_folder)
+    model_info = 'refinedet{}_{}'.format(str_input_size, args.dataset)
+    model_output_folder = os.path.join(output_folder, '{}'.format(args.network), model_info)
+    if not os.path.exists(model_output_folder):
+        os.makedirs(model_output_folder)
         
     data_loader = data.DataLoader(blob_dataset, args.batch_size,
                                   num_workers=args.num_workers,
@@ -166,10 +170,7 @@ def train():
     # number of epoch, in case of resuming from args.start_iter
     num_epoch = (cfg['max_iter'] - args.start_iter) // num_iter_per_epoch
     iteration = args.start_iter
-    arm_loss_loc = 0
-    arm_loss_conf = 0
-    odm_loss_loc = 0
-    odm_loss_conf = 0
+ 
     for epoch in range(0, num_epoch):
         # pdb.set_trace()
         for i_batch, (images, targets) in enumerate(data_loader):
@@ -215,23 +216,16 @@ def train():
                           arm_loss_loc, arm_loss_conf, 
                           odm_loss_loc, odm_loss_conf, 
                           loss.item()) + ' ')
-#                 print('iter ' + repr(iteration) +
-#                       ' || Loss: %.4f ||' % (loss.data[0]) + ' ')
-                # print('iter ' + repr(iteration) +
-                #       ' || Loss: %.4f ||' % (loss.data[0]), end=' ')
-    
             if iteration != 0 and iteration % 10000 == 0:
             #if iteration != 0 and iteration % cfg['checkpoint_step'] == 0:
                 print('Saving state, iter:', iteration)
                 torch.save(refinedet.state_dict(),
-                           os.path.join(model_save_folder,
-                                        model_info + '_' +
-                                        repr(iteration) + '.pth'))
-
+                           os.path.join(model_output_folder,
+                                        '_'.join([args.network, model_info, repr(iteration) + '.pth'])))
             iteration += 1
         
     torch.save(refinedet.state_dict(),
-               os.path.join(args.save_folder, args.dataset + '.pth'))
+               os.path.join(model_output_folder, args.dataset + '.pth'))
             
             
 
